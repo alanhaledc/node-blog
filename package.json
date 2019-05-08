@@ -1,0 +1,22 @@
+{
+  "name": "node-blog-1",
+  "description": "",
+  "version": "1.0.0",
+  "main": "bin/www.js",
+  "license": "MIT",
+  "scripts": {
+    "dev": "cross-env NODE_ENV=development nodemon ./bin/www.js",
+    "start": "cross-env NODE_ENV=production nodemon ./bin/www.js"
+  },
+  "dependencies": {
+    "mysql": "^2.17.1"
+  },
+  "devDependencies": {
+    "cross-env": "^5.2.0",
+    "eslint": "^5.16.0",
+    "eslint-config-prettier": "^4.2.0",
+    "eslint-plugin-prettier": "^3.0.1",
+    "nodemon": "^1.19.0",
+    "prettier": "^1.17.0"
+  }
+}
