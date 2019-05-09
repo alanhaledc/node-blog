@@ -8,6 +8,14 @@ const {
 const url = require('url')
 const { SuccessModel, ErrorModel } = require('../model/response')
 
+const loginCheck = req => {
+  if (!req.session.user) {
+    return Promise.resolve(new ErrorModel('尚未登录'))
+  }
+
+  // 已登录不处理，则返回 undefined
+}
+
 const handleBlogRouter = (req, res) => {
   const method = req.method
   const path = url.parse(req.url).pathname
@@ -29,7 +37,15 @@ const handleBlogRouter = (req, res) => {
   }
 
   if (method === 'POST' && path === '/api/blog/new') {
-    req.body.author = 'bill'
+    // 未登录抛出错误对象， 走 if 流程返回错误对象
+    // 已登录返回 undefined， 不会走 if 流程
+    const loginCheckResult = loginCheck(req)
+
+    if (loginCheckResult) {
+      return loginCheckResult
+    }
+
+    req.body.author = req.session.username
     const result = newBlog(req.body)
     return result.then(data => {
       return new SuccessModel(data)
@@ -37,6 +53,12 @@ const handleBlogRouter = (req, res) => {
   }
 
   if (method === 'POST' && path === '/api/blog/update') {
+    const loginCheckResult = loginCheck(req)
+
+    if (loginCheckResult) {
+      return loginCheckResult
+    }
+
     const result = updateBlog(id, req.body)
     return result.then(val => {
       if (val) {
@@ -48,7 +70,12 @@ const handleBlogRouter = (req, res) => {
   }
 
   if (method === 'POST' && path === '/api/blog/del') {
-    const author = 'bill'
+    const loginCheckResult = loginCheck(req)
+
+    if (loginCheckResult) {
+      return loginCheckResult
+    }
+    const author = req.session.username
     const result = delBlog(id, author)
     return result.then(val => {
       if (val) {
