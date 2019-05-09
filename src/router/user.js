@@ -16,7 +16,6 @@ const handleUserRouter = (req, res) => {
         req.session.username = data.username
         req.session.realname = data.realname
 
-        console.log(req.sessionId, req.session)
         // 同步到 redis
         set(req.sessionId, req.session)
 
@@ -28,7 +27,6 @@ const handleUserRouter = (req, res) => {
   }
 
   if (method === 'GET' && path === '/api/user/login-test') {
-    console.log('req.session is', req.session)
     if (req.session.username) {
       return Promise.resolve(new SuccessModel({ session: req.session }))
     } else {

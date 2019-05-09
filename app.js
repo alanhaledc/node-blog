@@ -2,6 +2,7 @@ const url = require('url')
 const handleBlogRouter = require('./src/router/blog')
 const handleUserRouter = require('./src/router/user')
 const { get, set } = require('./src/db/redis')
+const { access } = require('./src/utils/log')
 
 // 本地 session 数据存储
 // const SESSION_DATA = {}
@@ -40,6 +41,14 @@ const processPostData = req => {
 }
 
 const serverHandle = (req, res) => {
+  // 记录 access log
+  access(
+    `${req.method} -- ${req.url} -- ${
+      req.headers['user-agent']
+    } -- ${Date.now()}`
+  )
+
+  // 设置返回类型
   res.setHeader('Content-type', 'application/json')
 
   // 解析 path
@@ -86,7 +95,6 @@ const serverHandle = (req, res) => {
   req.sessionId = userId
   get(req.sessionId)
     .then(sessionData => {
-      console.log('sessionData', sessionData)
       if (sessionData === null) {
         set(req.sessionId, {})
         req.session = {}
