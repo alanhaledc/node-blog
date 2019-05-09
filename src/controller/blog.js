@@ -1,4 +1,5 @@
 const { exec } = require('../db/mysql')
+const xss = require('xss')
 
 const getList = (author, keyword) => {
   let sql = 'select * from blogs where 1 = 1 ' // where 1 = 1 占位
@@ -26,6 +27,11 @@ const getDetail = id => {
 
 const newBlog = (blogData = {}) => {
   const { title, content, author } = blogData
+
+  // xss 转义特性字符，防止 xss 攻击
+  title = xss(title)
+  content = xss(content)
+
   const createTime = Date.now()
 
   const sql = `
@@ -40,6 +46,9 @@ const newBlog = (blogData = {}) => {
 
 const updateBlog = (id, blogData = {}) => {
   const { title, content } = blogData
+
+  title = xss(title)
+  content = xss(content)
 
   const sql = `
     update blogs set title = '${title}', content = '${content}' where id = ${id}
