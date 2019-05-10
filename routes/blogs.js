@@ -11,13 +11,15 @@ const express = require('express')
 const router = express.Router()
 
 router.get('/list', (req, res) => {
-  const { author = '', keyword = '' } = req.query
+  const { keyword = '' } = req.query
+
+  let author = ''
 
   if (req.query.isadmin) {
     if (!req.session.username) {
       res.json(new ErrorModel('未登录'))
     }
-    const author = req.session.username
+    author = req.session.username
   }
 
   const result = getList(author, keyword)
