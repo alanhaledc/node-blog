@@ -9,7 +9,7 @@ const url = require('url')
 const { SuccessModel, ErrorModel } = require('../model/response')
 
 const loginCheck = req => {
-  if (!req.session.user) {
+  if (!req.session.username) {
     return Promise.resolve(new ErrorModel('尚未登录'))
   }
 
@@ -19,9 +19,16 @@ const loginCheck = req => {
 const handleBlogRouter = (req, res) => {
   const method = req.method
   const path = url.parse(req.url).pathname
-  const { author = '', keyword = '', id } = req.query
+  const { id, keyword } = req.query
 
   if (method === 'GET' && path === '/api/blog/list') {
+    if (req.query.isadmin) {
+      const loginCheckResult = loginCheck(req)
+      if (loginCheckResult) {
+        return loginCheckResult
+      }
+      author = req.session.username
+    }
     const result = getList(author, keyword)
 
     return result.then(listData => {
