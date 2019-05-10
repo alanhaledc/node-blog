@@ -23,9 +23,11 @@ app.set('view engine', 'jade')
 
 // 写日志
 if (!isProd) {
-  app.use(logger('dev'), {
-    stream: process.stdout
-  })
+  app.use(
+    logger('dev', {
+      stream: process.stdout
+    })
+  )
 } else {
   const logFileName = path.resolve(__dirname, './logs/access.log')
   if (!fs.existsSync(logFileName)) {
