@@ -26,9 +26,9 @@ const getDetail = id => {
 }
 
 const newBlog = (blogData = {}) => {
-  const { title, content, author } = blogData
-
   // xss 转义特性字符，防止 xss 攻击
+  let { title, content, author } = blogData
+
   title = xss(title)
   content = xss(content)
 
@@ -45,7 +45,7 @@ const newBlog = (blogData = {}) => {
 }
 
 const updateBlog = (id, blogData = {}) => {
-  const { title, content } = blogData
+  let { title, content } = blogData
 
   title = xss(title)
   content = xss(content)

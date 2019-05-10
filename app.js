@@ -1,147 +1,84 @@
-const url = require('url')
-const handleBlogRouter = require('./src/router/blog')
-const handleUserRouter = require('./src/router/user')
-const { get, set } = require('./src/db/redis')
-const { access } = require('./src/utils/log')
+var createError = require('http-errors')
+var express = require('express')
+var path = require('path')
+const fs = require('fs')
+var cookieParser = require('cookie-parser')
+var logger = require('morgan')
+const session = require('express-session')
+const RedisStore = require('connect-redis')(session)
+const redisClient = require('./db/redis')
 
-// 本地 session 数据存储
-// const SESSION_DATA = {}
+var indexRouter = require('./routes/index')
+var usersRouter = require('./routes/users')
+var blogsRouter = require('./routes/blogs')
+var userRouter = require('./routes/user')
 
-const getCookieExpires = (day = 1) => {
-  const time = new Date()
-  time.setTime(time.getTime() + day * 1000 * 60 * 60 * 24)
-  return time.toGMTString()
-}
+const isProd = process.env.NODE_ENV === 'production'
 
-// 处理 post 数据
-const processPostData = req => {
-  return new Promise((resolve, reject) => {
-    if (req.method !== 'POST') {
-      resolve({})
-      return
-    }
+var app = express()
 
-    if (req.headers['content-type'] !== 'application/json') {
-      resolve({})
-      return
-    }
+// view engine setup
+app.set('views', path.join(__dirname, 'views'))
+app.set('view engine', 'jade')
 
-    let postData = ''
-
-    req.on('data', chunk => (postData += chunk))
-
-    req.on('end', () => {
-      if (!postData) {
-        resolve({})
-        return
-      }
-      resolve(JSON.parse(postData))
-    })
+// 写日志
+if (!isProd) {
+  app.use(logger('dev'), {
+    stream: process.stdout
   })
-}
-
-const serverHandle = (req, res) => {
-  // 记录 access log
-  access(
-    `${req.method} -- ${req.url} -- ${
-      req.headers['user-agent']
-    } -- ${Date.now()}`
-  )
-
-  // 设置返回类型
-  res.setHeader('Content-type', 'application/json')
-
-  // 解析 path
-  req.path = url.parse(req.url).pathname
-
-  // 解析 query
-  req.query = url.parse(req.url, true).query
-
-  // 解析 cookie
-  req.cookie = {}
-  const cookieStr = req.headers.cookie || ''
-  cookieStr.split(';').forEach(item => {
-    if (!item) {
-      return
-    }
-    const arr = item.split('=')
-    const key = arr[0].trim()
-    const val = arr[1].trim()
-    req.cookie[key] = val
-  })
-
-  // 解析 session
-  // let needSetCookie = false
-  // let userId = req.cookie.userid
-  // if (userId) {
-  //   if (!SESSION_DATA[userId]) {
-  //     SESSION_DATA[userId] = {}
-  //   }
-  // } else {
-  //   needSetCookie = true
-  //   userId = `${Date.now()}_${Math.random()}`
-  //   SESSION_DATA[userId] = {}
-  // }
-  // req.session = SESSION_DATA[userId]
-
-  // 解析 session 使用 redis
-  let needSetCookie = false
-  let userId = req.cookie.userid
-  if (!userId) {
-    needSetCookie = true
-    userId = `${Date.now()}_${Math.random()}`
-    set(userId, {})
+} else {
+  const logFileName = path.resolve(__dirname, './logs/access.log')
+  if (!fs.existsSync(logFileName)) {
+    fs.mkdirSync(path.join(__dirname, 'logs'))
   }
-  req.sessionId = userId
-  get(req.sessionId)
-    .then(sessionData => {
-      if (sessionData === null) {
-        set(req.sessionId, {})
-        req.session = {}
-      } else {
-        req.session = sessionData
-      }
-
-      return processPostData(req)
+  const writeStream = fs.createWriteStream(logFileName, {
+    flags: 'a'
+  })
+  app.use(
+    logger('combined', {
+      stream: writeStream
     })
-    .then(postData => {
-      req.body = postData
-
-      // 解析 blog 路由
-      const blogResult = handleBlogRouter(req, res)
-
-      if (blogResult) {
-        blogResult.then(blogData => {
-          if (needSetCookie) {
-            res.setHeader(
-              'Set-Cookie',
-              `userid=${userId};path=/;httpOnly;expires=${getCookieExpires()}`
-            )
-          }
-          res.end(JSON.stringify(blogData))
-        })
-        return
-      }
-
-      // 解析 user 路由
-      const userResult = handleUserRouter(req, res)
-      if (userResult) {
-        userResult.then(userData => {
-          if (needSetCookie) {
-            res.setHeader(
-              'Set-Cookie',
-              `userid=${userId};path=/;httpOnly;expires=${getCookieExpires()}`
-            )
-          }
-          res.end(JSON.stringify(userData))
-        })
-        return
-      }
-
-      res.writeHead(404, { 'Content-type': 'text/plain' })
-      res.write('404 Not Found\n')
-      res.end()
-    })
+  )
 }
 
-module.exports = serverHandle
+app.use(express.json())
+app.use(express.urlencoded({ extended: false }))
+app.use(cookieParser())
+app.use(express.static(path.join(__dirname, 'public')))
+
+app.use(
+  session({
+    secret: 'sWdsi8jd#_34@',
+    resave: false, // false 不重复保存
+    saveUninitialized: false, // false 不保存未初始化的值，登录后才保存 session
+    cookie: {
+      maxAge: 1000 * 60 * 60 * 24
+    },
+    store: new RedisStore({
+      client: redisClient
+    })
+  })
+)
+
+app.use('/', indexRouter)
+app.use('/users', usersRouter)
+app.use('/api/blog', blogsRouter)
+app.use('/api/user', userRouter)
+
+// catch 404 and forward to error handler
+app.use(function(req, res, next) {
+  next(createError(404))
+})
+
+// error handler
+app.use(function(err, req, res, next) {
+  // set locals, only providing error in development
+  res.locals.message = err.message
+  res.locals.error = req.app.get('env') === 'development' ? err : {}
+
+  // render the error page
+  res.status(err.status || 500)
+  res.render('error')
+})
+
+module.exports = app
