@@ -1,30 +1,55 @@
-var createError = require('http-errors')
-var express = require('express')
-var path = require('path')
+const Koa = require('koa')
+const app = new Koa()
+const views = require('koa-views')
+const json = require('koa-json')
+const onerror = require('koa-onerror')
+const bodyparser = require('koa-bodyparser')
+const logger = require('koa-logger')
+const session = require('koa-generic-session')
+const redisStore = require('koa-redis')
+const morgan = require('koa-morgan')
+const path = require('path')
 const fs = require('fs')
-var cookieParser = require('cookie-parser')
-var logger = require('morgan')
-const session = require('express-session')
-const RedisStore = require('connect-redis')(session)
-const redisClient = require('./db/redis')
 
-var indexRouter = require('./routes/index')
-var usersRouter = require('./routes/users')
-var blogsRouter = require('./routes/blogs')
-var userRouter = require('./routes/user')
+const { REDIS_CONFIG } = require('./config/db')
+
+const index = require('./routes/index')
+const users = require('./routes/users')
+const blog = require('./routes/blog')
+const user = require('./routes/user')
 
 const isProd = process.env.NODE_ENV === 'production'
 
-var app = express()
+// error handler
+onerror(app)
 
-// view engine setup
-app.set('views', path.join(__dirname, 'views'))
-app.set('view engine', 'jade')
+// middlewares
+app.use(
+  bodyparser({
+    enableTypes: ['json', 'form', 'text']
+  })
+)
+app.use(json())
+app.use(logger())
+app.use(require('koa-static')(__dirname + '/public'))
 
-// 写日志
+app.use(
+  views(__dirname + '/views', {
+    extension: 'pug'
+  })
+)
+
+// logger
+// app.use(async (ctx, next) => {
+//   const start = new Date()
+//   await next()
+//   const ms = new Date() - start
+//   console.log(`${ctx.method} ${ctx.url} - ${ms}ms`)
+// })
+
 if (!isProd) {
   app.use(
-    logger('dev', {
+    morgan('dev', {
       stream: process.stdout
     })
   )
@@ -37,50 +62,36 @@ if (!isProd) {
     flags: 'a'
   })
   app.use(
-    logger('combined', {
+    morgan('combined', {
       stream: writeStream
     })
   )
 }
 
-app.use(express.json())
-app.use(express.urlencoded({ extended: false }))
-app.use(cookieParser())
-app.use(express.static(path.join(__dirname, 'public')))
-
+// session
+app.keys = ['sWdsi8jd#_34@']
 app.use(
   session({
-    secret: 'sWdsi8jd#_34@',
-    resave: false, // false 不重复保存
-    saveUninitialized: false, // false 不保存未初始化的值，登录后才保存 session
     cookie: {
+      path: '/',
+      httpOnly: true,
       maxAge: 1000 * 60 * 60 * 24
     },
-    store: new RedisStore({
-      client: redisClient
+    store: redisStore({
+      all: `${REDIS_CONFIG.host}:${REDIS_CONFIG.port}`
     })
   })
 )
 
-app.use('/', indexRouter)
-app.use('/users', usersRouter)
-app.use('/api/blog', blogsRouter)
-app.use('/api/user', userRouter)
+// routes
+app.use(index.routes(), index.allowedMethods())
+app.use(users.routes(), users.allowedMethods())
+app.use(blog.routes(), blog.allowedMethods())
+app.use(user.routes(), user.allowedMethods())
 
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  next(createError(404))
-})
-
-// error handler
-app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message
-  res.locals.error = req.app.get('env') === 'development' ? err : {}
-
-  // render the error page
-  res.status(err.status || 500)
-  res.render('error')
+// error-handling
+app.on('error', (err, ctx) => {
+  console.error('server error', err, ctx)
 })
 
 module.exports = app

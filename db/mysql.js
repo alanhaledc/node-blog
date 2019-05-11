@@ -10,7 +10,6 @@ function exec(sql) {
     connection.query(sql, (err, result) => {
       if (err) {
         reject(err)
-        console.log(err)
         return
       }
       resolve(result)

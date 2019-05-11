@@ -1,22 +1,29 @@
 {
   "name": "node-blog",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "cross-env NODE_ENV=development nodemon ./bin/www",
-    "start": "cross-env NODE_ENV=production nodemon ./bin/www",
-    "http": "http-server ./http -p 8080 --proxy http://127.0.0.1:3000"
+    "dev": "cross-env NODE_ENV=development nodemon bin/www",
+    "start": "cross-env NODE_ENV=production nodemon bin/www",
+    "http": "http-server ./http -p 8080 --proxy http://127.0.0.1:3000",
+    "pm2": "pm2 start bin/www"
   },
   "dependencies": {
-    "connect-redis": "^3.4.1",
-    "cookie-parser": "~1.4.4",
-    "debug": "~2.6.9",
-    "express": "~4.16.1",
-    "express-session": "^1.16.1",
-    "http-errors": "~1.6.3",
-    "jade": "~1.11.0",
-    "morgan": "~1.9.1",
+    "debug": "^2.6.3",
+    "koa": "^2.2.0",
+    "koa-bodyparser": "^3.2.0",
+    "koa-convert": "^1.2.0",
+    "koa-generic-session": "^2.0.1",
+    "koa-json": "^2.0.2",
+    "koa-logger": "^2.0.1",
+    "koa-morgan": "^1.0.1",
+    "koa-onerror": "^1.2.1",
+    "koa-redis": "^4.0.0",
+    "koa-router": "^7.1.1",
+    "koa-static": "^3.0.0",
+    "koa-views": "^5.2.1",
     "mysql": "^2.17.1",
+    "pug": "^2.0.0-rc.1",
     "xss": "^1.0.6"
   },
   "devDependencies": {
@@ -25,7 +32,7 @@
     "eslint-config-prettier": "^4.2.0",
     "eslint-plugin-prettier": "^3.0.1",
     "http-server": "^0.11.1",
-    "nodemon": "^1.19.0",
+    "nodemon": "^1.8.1",
     "prettier": "^1.17.0"
   }
 }

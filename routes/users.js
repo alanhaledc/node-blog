@@ -1,9 +1,13 @@
-var express = require('express')
-var router = express.Router()
+const router = require('koa-router')()
 
-/* GET users listing. */
-router.get('/', function(req, res, next) {
-  res.send('respond with a resource')
+router.prefix('/users')
+
+router.get('/', function(ctx, next) {
+  ctx.body = 'this is a users response!'
+})
+
+router.get('/bar', function(ctx, next) {
+  ctx.body = 'this is a users/bar response'
 })
 
 module.exports = router

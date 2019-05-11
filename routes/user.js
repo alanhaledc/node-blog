@@ -1,43 +1,42 @@
+const Router = require('koa-router')
 const { login } = require('../controller/user')
 const { SuccessModel, ErrorModel } = require('../model/response')
-const express = require('express')
-const router = express.Router()
 
-router.post('/login', (req, res) => {
-  const { username, password } = req.body
+const router = new Router({ prefix: '/api/user' })
 
-  const result = login(username, password)
-  return result.then(data => {
-    if (data.username) {
-      req.session.username = data.username
-      req.session.realname = data.realname
+router.post('/login', async ctx => {
+  const { username, password } = ctx.request.body
+  const data = await login(username, password)
 
-      res.json(new SuccessModel())
-      return
-    } else {
-      res.json(new ErrorModel('登录失败'))
-    }
-  })
+  if (data.username) {
+    ctx.session.username = data.username
+    ctx.session.realname = data.realname
+
+    ctx.body = new SuccessModel()
+  } else {
+    ctx.body = new ErrorModel('登录失败')
+  }
 })
 
-router.get('/login-test', (req, res) => {
-  if (req.session.username) {
-    res.json(new SuccessModel('已登录'))
+router.get('/login-test', async ctx => {
+  if (ctx.session.username) {
+    ctx.body = new SuccessModel('已登录')
   }
 
-  res.json(new ErrorModel('未登录'))
+  ctx.body = new ErrorModel('未登录')
 })
 
-router.get('/session-test', (req, res) => {
-  const session = req.session
+router.get('/session-test', async ctx => {
+  const session = ctx.session
   if (!session.num) {
     session.num = 0
   }
+
   session.num += 1
 
-  res.json({
+  ctx.body = {
     num: session.num
-  })
+  }
 })
 
 module.exports = router
