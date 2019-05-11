@@ -9,7 +9,7 @@ const getList = (author, keyword) => {
   }
 
   if (keyword) {
-    sql += `and title like '%${keyword}%' or content like '%${keyword}%'`
+    sql += `and (title like '%${keyword}%' or content like '%${keyword}%')`
   }
 
   sql += 'order by createTime desc;'
